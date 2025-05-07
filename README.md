@@ -1,2 +1,3 @@
 # loadbalancer
-Тестовое задание для Cloud.ru Camp
+Тестовое задание для Cloud.ru Camp.
+Балансировщик входящих http-запросов.

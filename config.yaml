@@ -1,0 +1,5 @@
+port: 8080
+backend:
+  - http://localhost:8001
+  - http://localhost:8002
+  - http://localhost:8003
