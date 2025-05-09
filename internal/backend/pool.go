@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"log"
+	"math"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -10,30 +11,10 @@ import (
 	"time"
 )
 
-type Backend struct {
-	URL          *url.URL
-	Alive        bool // флаг доступности сервера
-	ReverseProxy *httputil.ReverseProxy
-	mux          sync.RWMutex
-}
-
-// SetAlive - изменяет статус бэкенда
-func (b *Backend) SetAlive(alive bool) {
-	b.mux.Lock()
-	defer b.mux.Unlock()
-	b.Alive = alive
-}
-
-// IsAlive - чтение статуса бэкенда
-func (b *Backend) IsAlive() bool {
-	b.mux.RLock()
-	defer b.mux.RUnlock()
-	return b.Alive
-}
-
+// Pool - список серверов, а также номер того, куда будет направлен следующий входящий запрос
 type Pool struct {
 	backends []*Backend
-	current  uint64
+	current  uint32
 	mux      sync.RWMutex
 }
 
@@ -58,13 +39,13 @@ func (p *Pool) Next() *Backend {
 	defer p.mux.Unlock()
 
 	next := int(p.current+1) % len(p.backends)
-	p.current = uint64(next)
+	p.current = uint32(next)
 	return p.backends[next]
 }
 
 // HealthCheck - периодично проверяет статусы серверов
 func (p *Pool) HealthCheck(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -80,4 +61,35 @@ func (p *Pool) HealthCheck(ctx context.Context) {
 			return
 		}
 	}
+}
+
+// GetMaxRetries - геттер-функция возращает количество серверов из пула
+func (p *Pool) GetLenBackends() int {
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+	return len(p.backends)
+}
+
+// GetLeastBusyBackend - возращает менее занятый бэкенд
+func (p *Pool) GetLeastBusyBackend() *Backend {
+	var leastBusy *Backend
+	minConns := math.MaxInt32
+
+	p.mux.RLock()
+	defer p.mux.RUnlock()
+
+	for _, b := range p.backends {
+		// проверяем живой ли бэкенд
+		if !b.IsAlive() {
+			continue
+		}
+
+		connectsCount := b.GetActiveConnects()
+		if connectsCount < minConns {
+			minConns = connectsCount
+			leastBusy = b
+		}
+	}
+
+	return leastBusy // Может быть nil, если все бэкенды мертвы
 }
