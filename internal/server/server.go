@@ -31,9 +31,14 @@ func (lb *LoadBalancer) StartServer(conf *config.Config) error {
 		balanceMethod = lb.BalanceRequestLeastConns
 	}
 
+	// Создаем мультиплексор и добавляем обработчики
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", balanceMethod)
+	mux.HandleFunc("/health", lb.healthCheckHandler)
+
 	// заворачиваем балансировщик в ограничитель и сверху ещё обработчик ошибок
 	handler := errors_middleware.ErrorHandler(
-		middleware.RateLimitMiddleware(bm, http.HandlerFunc(balanceMethod)))
+		middleware.RateLimitMiddleware(bm, mux))
 
 	// инит сервера с выбором метода loadBalancer'а
 	lb.server = &http.Server{
@@ -71,4 +76,10 @@ func (lb *LoadBalancer) StartServer(conf *config.Config) error {
 
 	log.Println("Server gracefully stopped.")
 	return nil
+}
+
+func (lb *LoadBalancer) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+
 }

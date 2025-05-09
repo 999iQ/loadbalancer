@@ -2,9 +2,9 @@ port: 8080
 server_shutdown_timeout_sec: 5
 lb_method: "RR" # RR|LC
 backends:
-  - http://localhost:8001
-  - http://localhost:8002
-  - http://localhost:8003
+  - http://127.0.0.1:8001
+  - http://127.0.0.1:8002
+  - http://127.0.0.1:8003
 rate_limit:
   enabled: true
   cleanup_interval: 1m
