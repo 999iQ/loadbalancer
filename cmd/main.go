@@ -11,7 +11,7 @@ import (
 func main() {
 	conf, err := config.LoadConfig("config.yaml")
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		log.Fatalf("Failed to load LB config: %v", err)
 	}
 	log.Printf("Successful loading of the server configuration: %v\n", conf)
 
@@ -21,12 +21,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Запускаем HealthCheck в горутине
+	// Запускаем HealthCheck в горутине, для проверки статусов серверов
 	go backendPool.HealthCheck(ctx)
 
 	// Запускаем сервер
 	lb := server.NewLoadBalancer(conf.Port, backendPool)
-	if err := lb.Start(conf.ServerShutdownTimeoutSec); err != nil {
+	if err := lb.StartServer(conf); err != nil {
 		log.Fatal(err)
 	}
 
