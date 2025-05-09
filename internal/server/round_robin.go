@@ -6,8 +6,8 @@ import (
 	"net/http"
 )
 
-// balanceRequest - распределитель запросов по серверам (Round-Robin)
-func (lb *LoadBalancer) balanceRequestRoundRobin(w http.ResponseWriter, r *http.Request) {
+// BalanceRequestRoundRobin - распределитель запросов по серверам (Round-Robin)
+func (lb *LoadBalancer) BalanceRequestRoundRobin(w http.ResponseWriter, r *http.Request) {
 	countBackends := lb.pool.GetLenBackends()
 
 	for i := 0; i < countBackends; i++ {

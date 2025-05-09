@@ -1,3 +1,28 @@
 # loadbalancer
 Тестовое задание для Cloud.ru Camp.
 Балансировщик входящих http-запросов.
+
+port: 8080
+server_shutdown_timeout_sec: 5
+lb_method: 1
+backends:
+- http://localhost:8001
+- http://localhost:8002
+- http://localhost:8003
+
+# ниже настройки для ограничителя запросов
+rate_limit:
+enabled: true
+cleanup_interval: 1m
+default:
+requests_per_sec: 100
+burst: 200
+special_limits: # пример индивидуальных конфигураций для IP
+- ips: ["192.168.1.100", "192.168.1.101"]
+limit:
+requests_per_sec: 50
+burst: 100
+- ips: ["10.0.0.5"]
+limit:
+requests_per_sec: 2
+burst: 5

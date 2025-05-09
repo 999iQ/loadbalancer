@@ -25,7 +25,7 @@ func (lb *LoadBalancer) StartServer(conf *config.Config) error {
 	lb.server = &http.Server{
 		Addr: ":" + strconv.Itoa(lb.port),
 		// ниже описываю middleware и следующий хэндлер для вызова после проверки IP rate limit'ером
-		Handler: middleware.RateLimitMiddleware(bm, http.HandlerFunc(lb.balanceRequestRoundRobin)),
+		Handler: middleware.RateLimitMiddleware(bm, http.HandlerFunc(lb.BalanceRequestRoundRobin)),
 	}
 
 	// Канал для обработки сигналов завершения программы

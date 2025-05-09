@@ -8,9 +8,11 @@ import (
 
 type Config struct {
 	Port                     int           `yaml:"port"`
-	Backends                 []string      `yaml:"backends"`
 	ServerShutdownTimeoutSec time.Duration `yaml:"server_shutdown_timeout_sec"`
-	RateLimit                struct {
+	LBMethod                 string        `yaml:"lb_method"`
+	Backends                 []string      `yaml:"backends"`
+
+	RateLimit struct {
 		Enabled         bool          `yaml:"enabled"`
 		CleanupInterval time.Duration `yaml:"cleanup_interval"`
 		Default         struct {

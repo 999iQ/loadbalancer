@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+  loadbalancer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    restart: on-failure
+    networks:
+      - service-net
+
+networks:
+  service-net:
+    driver: bridge

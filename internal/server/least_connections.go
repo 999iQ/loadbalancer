@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// balanceRequestLeastConns - распределитель запросов по серверам (Least Connections)
-func (lb *LoadBalancer) balanceRequestLeastConns(w http.ResponseWriter, r *http.Request) {
+// BalanceRequestLeastConns - распределитель запросов по серверам (Least Connections)
+func (lb *LoadBalancer) BalanceRequestLeastConns(w http.ResponseWriter, r *http.Request) {
 	peer := lb.pool.GetLeastBusyBackend()
 	if peer == nil { // все мертвы
 		log.Printf("FATAL-ERROR: ALL BACKEND-SERVERS ARE DOWN!💀")

@@ -11,7 +11,7 @@ import (
 func main() {
 	conf, err := config.LoadConfig("config.yaml")
 	if err != nil {
-		log.Fatalf("Failed to load LB config: %v", err)
+		log.Fatalf("Failed to load config: %v", err)
 	}
 	log.Printf("Successful loading of the server configuration: %v\n", conf)
 
