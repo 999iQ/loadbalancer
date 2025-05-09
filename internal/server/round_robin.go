@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"loadbalancer/internal/errors"
 	"log"
 	"net/http"
 )
@@ -25,5 +26,8 @@ func (lb *LoadBalancer) BalanceRequestRoundRobin(w http.ResponseWriter, r *http.
 	}
 
 	log.Printf("FATAL-ERROR: ALL BACKEND-SERVERS ARE DOWN!💀")
-	http.Error(w, "Sorry, the service is currently unavailable. Please try again later.", http.StatusServiceUnavailable)
+	err := errors.NewAPIError(http.StatusServiceUnavailable, "Sorry, the service is currently unavailable. Please try again later.")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(err.Code)
+	w.Write(err.ToJSON())
 }

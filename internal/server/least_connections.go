@@ -1,6 +1,7 @@
 package server
 
 import (
+	"loadbalancer/internal/errors"
 	"log"
 	"net/http"
 )
@@ -10,7 +11,10 @@ func (lb *LoadBalancer) BalanceRequestLeastConns(w http.ResponseWriter, r *http.
 	peer := lb.pool.GetLeastBusyBackend()
 	if peer == nil { // все мертвы
 		log.Printf("FATAL-ERROR: ALL BACKEND-SERVERS ARE DOWN!💀")
-		http.Error(w, "Sorry, the service is currently unavailable. Please try again later.", http.StatusServiceUnavailable)
+		err := errors.NewAPIError(http.StatusServiceUnavailable, "Sorry, the service is currently unavailable. Please try again later.")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(err.Code)
+		w.Write(err.ToJSON())
 		return
 	}
 	peer.IncrementConn()

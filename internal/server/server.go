@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"loadbalancer/internal/config"
+	"loadbalancer/internal/errors/errors_middleware"
 	"loadbalancer/internal/ratelimiter/bucket"
 	"loadbalancer/internal/ratelimiter/middleware"
 	"log"
@@ -14,21 +15,34 @@ import (
 	"time"
 )
 
-// Start - запускает сервер с балансировщиком
+// StartServer - запускает сервер с балансировщиком
 func (lb *LoadBalancer) StartServer(conf *config.Config) error {
 
 	// Инициализирую бакет менеджер для Rate Limiter
 	bm := bucket.NewBucketManager(conf)
 	defer bm.Stop()
 
+	// BalanceMethod - спец. тип чтобы можно было передать метод балансировки из конфига
+	type BalanceMethod func(w http.ResponseWriter, r *http.Request)
+	var balanceMethod BalanceMethod
+	if conf.LBMethod == "RR" {
+		balanceMethod = lb.BalanceRequestRoundRobin
+	} else if conf.LBMethod == "LC" {
+		balanceMethod = lb.BalanceRequestLeastConns
+	}
+
+	// заворачиваем балансировщик в ограничитель и сверху ещё обработчик ошибок
+	handler := errors_middleware.ErrorHandler(
+		middleware.RateLimitMiddleware(bm, http.HandlerFunc(balanceMethod)))
+
 	// инит сервера с выбором метода loadBalancer'а
 	lb.server = &http.Server{
 		Addr: ":" + strconv.Itoa(lb.port),
-		// ниже описываю middleware и следующий хэндлер для вызова после проверки IP rate limit'ером
-		Handler: middleware.RateLimitMiddleware(bm, http.HandlerFunc(lb.BalanceRequestRoundRobin)),
+		// ниже описываю errors_middleware и следующий хэндлер для вызова после проверки IP rate limit'ером
+		Handler: handler,
 	}
 
-	// Канал для обработки сигналов завершения программы
+	// канал для обработки сигналов завершения программы
 	stopChan := make(chan os.Signal, 1)
 	// настраиваем прослушивание сигналов завершения в этот канал
 	signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM) // SIGINT|SIGTERM
@@ -45,7 +59,7 @@ func (lb *LoadBalancer) StartServer(conf *config.Config) error {
 	<-stopChan
 	log.Println("Shutting down server...")
 
-	// Даём серверу 5 секунд на завершение активных соединений
+	// Даём серверу время на завершение активных соединений
 	ctx, cancel := context.WithTimeout(context.Background(), conf.ServerShutdownTimeoutSec*time.Second)
 	defer cancel()
 

@@ -72,15 +72,16 @@ func TestLoadBalancerWithRateLimiter(t *testing.T) {
 	lb := server.NewLoadBalancer(cfg.Port, backendPool)
 
 	// 5. Создаем тестовый HTTP сервер
-	var handler http.HandlerFunc
+	type BalanceMethod func(w http.ResponseWriter, r *http.Request)
+	var balanceMethod BalanceMethod
 	if cfg.LBMethod == "RR" {
-		handler = http.HandlerFunc(lb.BalanceRequestRoundRobin)
-	} else {
-		handler = http.HandlerFunc(lb.BalanceRequestLeastConns)
+		balanceMethod = lb.BalanceRequestRoundRobin
+	} else if cfg.LBMethod == "LC" {
+		balanceMethod = lb.BalanceRequestLeastConns
 	}
 
 	testServer := httptest.NewServer(
-		middleware.RateLimitMiddleware(bm, handler),
+		middleware.RateLimitMiddleware(bm, http.HandlerFunc(balanceMethod)),
 	)
 	defer testServer.Close()
 

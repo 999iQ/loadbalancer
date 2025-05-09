@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"loadbalancer/internal/errors"
 	"loadbalancer/internal/ratelimiter/bucket"
 	"log"
 	"net"
@@ -20,7 +21,10 @@ func RateLimitMiddleware(bm *bucket.BucketManager, next http.Handler) http.Handl
 
 		if !bm.Allow(ip) {
 			log.Printf("WARN: http.go - IP: %s send too many requests\n", ip)
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+			err := errors.NewAPIError(http.StatusTooManyRequests, "Rate limit exceeded")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err.Code)
+			w.Write(err.ToJSON())
 			return
 		}
 
